@@ -5,7 +5,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-HEADERS = ["data", "hora", "numero", "status", "mensagem", "erro"]
+HEADERS = ["data", "hora", "numero", "status", "mensagem", "latencia_segundos", "erro"]
 
 
 def create_log_file(logs_dir: Path) -> Path:
@@ -16,11 +16,19 @@ def create_log_file(logs_dir: Path) -> Path:
     return path
 
 
-def write_log(path: Path, number: str, status: str, message: str, error: str = "") -> None:
+def write_log(path: Path, number: str, status: str, message: str, latency: float = 0.0, error: str = "") -> None:
     now = datetime.now()
     with path.open("a", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=HEADERS)
-        writer.writerow({"data": now.strftime("%Y-%m-%d"), "hora": now.strftime("%H:%M:%S"), "numero": number, "status": status, "mensagem": message, "erro": error})
+        writer.writerow({
+            "data": now.strftime("%Y-%m-%d"),
+            "hora": now.strftime("%H:%M:%S"),
+            "numero": number,
+            "status": status,
+            "mensagem": message,
+            "latencia_segundos": f"{latency:.3f}",
+            "erro": error,
+        })
 
 
 def list_logs(logs_dir: Path) -> list[Path]:

@@ -1,6 +1,7 @@
 """Importação e normalização de contatos para o BulkSMS 1.0."""
 from __future__ import annotations
 
+import random
 import re
 from pathlib import Path
 from typing import Iterable
@@ -99,15 +100,20 @@ def import_contacts(path: Path, default_country_code: str = MOZAMBIQUE_PREFIX) -
     return contacts
 
 
-def generate_mozambique_contacts(quantity: int, start: int = 840000000) -> list[str]:
-    """Gera números moçambicanos sequenciais para testes autorizados pelo usuário."""
+def generate_mozambique_contacts(quantity: int, prefixes: list[str] | None = None) -> list[str]:
+    """Gera números moçambicanos aleatórios e únicos para testes autorizados."""
     if quantity < 1:
         raise ValueError("A quantidade deve ser maior que zero.")
-    contacts = []
-    current = start
+    prefixes = prefixes or ["82", "83", "84", "85", "86", "87"]
+    max_unique = len(prefixes) * 10_000_000
+    if quantity > max_unique:
+        raise ValueError(f"Quantidade muito alta. Máximo possível: {max_unique}.")
+
+    contacts: set[str] = set()
     while len(contacts) < quantity:
-        phone = normalize_phone(str(current))
+        prefix = random.choice(prefixes)
+        suffix = random.randint(0, 9_999_999)
+        phone = normalize_phone(f"{prefix}{suffix:07d}")
         if phone:
-            contacts.append(phone)
-        current += 1
-    return contacts
+            contacts.add(phone)
+    return list(contacts)

@@ -37,6 +37,25 @@ def path_from_config(key: str) -> Path:
     return ROOT / config[key]
 
 
+def collect_network_info() -> str:
+    """Coleta informações rápidas de rede quando Termux:API disponibiliza os comandos."""
+    commands = ["termux-telephony-cellinfo", "termux-wifi-connectioninfo"]
+    summaries: list[str] = []
+    for command in commands:
+        try:
+            result = subprocess.run([command], text=True, capture_output=True, timeout=3, check=False)
+        except FileNotFoundError:
+            continue
+        except subprocess.TimeoutExpired:
+            summaries.append(f"{command}: timeout")
+            continue
+        if result.returncode == 0 and result.stdout.strip():
+            summaries.append(f"{command}: disponível")
+        elif result.stderr.strip():
+            summaries.append(f"{command}: {result.stderr.strip()[:80]}")
+    return " | ".join(summaries) if summaries else "Informação de rede indisponível neste aparelho."
+
+
 def header() -> None:
     now = datetime.now()
     console.clear()
@@ -113,7 +132,8 @@ def panel(current: str, start: float) -> Panel:
     body = (
         f"Total de contatos: {stats.total_imported}\nEnviados: {stats.total_sent}\n"
         f"Sucesso: {stats.success}\nFalhas: {stats.failures}\nPercentual concluído: {stats.percent:.1f}%\n"
-        f"Tempo decorrido: {stats.elapsed_text()}\nNúmero atual: {current}"
+        f"Tempo decorrido: {stats.elapsed_text()}\nNúmero atual: {current}\n"
+        f"Latência média: {stats.average_latency:.2f}s\nFrequência: {stats.messages_per_minute:.1f} SMS/min"
     )
     return Panel(body, title="Envio em andamento", border_style="green")
 
@@ -129,14 +149,17 @@ def start_sending() -> None:
     start = time.time()
     with Live(panel("Aguardando", start), refresh_per_second=4) as live:
         for number in contacts:
+            sent_at = time.perf_counter()
             ok, error = send_sms(number, message_text)
+            latency = time.perf_counter() - sent_at
+            stats.latencies.append(latency)
             stats.total_sent += 1
             if ok:
                 stats.success += 1
-                write_log(log_file, number, "SUCESSO", message_text)
+                write_log(log_file, number, "SUCESSO", message_text, latency)
             else:
                 stats.failures += 1
-                write_log(log_file, number, "FALHA", message_text, error)
+                write_log(log_file, number, "FALHA", message_text, latency, error)
             live.update(panel(number, start))
             time.sleep(float(config.get("send_delay_seconds", 1)))
     console.print(f"[green]Envio finalizado. Log: {log_file}[/green]")
@@ -144,7 +167,9 @@ def start_sending() -> None:
 
 def show_stats() -> None:
     console.print(Panel(
-        f"Total importados: {stats.total_imported}\nTotal enviados: {stats.total_sent}\nSucesso: {stats.success}\nFalhas: {stats.failures}\nTempo total: {stats.elapsed_text()}",
+        f"Total importados: {stats.total_imported}\nTotal enviados: {stats.total_sent}\nSucesso: {stats.success}\n"
+        f"Falhas: {stats.failures}\nTempo total: {stats.elapsed_text()}\nFrequência: {stats.messages_per_minute:.1f} SMS/min\n"
+        f"Latência média: {stats.average_latency:.2f}s\nLatência mínima: {stats.min_latency:.2f}s\nLatência máxima: {stats.max_latency:.2f}s",
         title="Estatísticas",
     ))
 
@@ -163,10 +188,12 @@ def settings_menu() -> None:
         subprocess.run(config["github_update_command"].split(), cwd=ROOT.parent, check=False)
     if Prompt.ask("Gerar contatos de Moçambique +258?", choices=["s", "n"], default="n") == "s":
         quantity = IntPrompt.ask("Quantidade", default=10)
-        generated = generate_mozambique_contacts(quantity)
+        generated = generate_mozambique_contacts(quantity, config.get("random_mozambique_prefixes"))
         output = path_from_config("contacts_dir") / f"mozambique_{quantity}.txt"
         output.write_text("\n".join(generated) + "\n", encoding="utf-8")
-        console.print(f"[green]Gerado: {output}[/green]")
+        console.print(f"[green]Gerado aleatoriamente: {output}[/green]")
+    if config.get("show_network_info", True):
+        console.print(Panel(collect_network_info(), title="Rede / Termux:API"))
 
 
 def help_menu() -> None:

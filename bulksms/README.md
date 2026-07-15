@@ -29,6 +29,12 @@ Coloque arquivos em `contacts/` nos formatos:
 
 O sistema elimina linhas vazias, remove duplicados e normaliza números de Moçambique para `+258` quando o usuário informar números nacionais como `841234567`.
 
+## Velocidade, latência e frequência
+
+O envio continua sendo um SMS por vez para respeitar o comportamento do `termux-sms-send`, mas o intervalo padrão foi reduzido para `0.25` segundo em `config.json`. Durante o envio, o painel mostra latência média e frequência aproximada em SMS/minuto. Os logs também gravam `latencia_segundos` para cada número.
+
+Se o aparelho ou operadora limitar SMS, aumente `send_delay_seconds` no `config.json` para reduzir falhas.
+
 ## Mensagens
 
 Coloque mensagens em `messages/` como arquivos `.txt` ou escolha a opção de digitar a mensagem no teclado.
@@ -64,12 +70,12 @@ Também é possível executar a atualização pelo menu **Configurações**. O c
 
 ## Gerar contatos de Moçambique +258
 
-No menu **Configurações**, escolha gerar contatos. Informe a quantidade desejada e o sistema criará um arquivo `contacts/mozambique_QUANTIDADE.txt` com números `+258` sequenciais para testes autorizados.
+No menu **Configurações**, escolha gerar contatos. Informe a quantidade desejada e o sistema criará um arquivo `contacts/mozambique_QUANTIDADE.txt` com números `+258` totalmente aleatórios e únicos para testes autorizados. Os prefixos móveis usados ficam em `config.json` em `random_mozambique_prefixes`.
 
 ## Logs
 
-Cada envio cria um CSV em `logs/` com data, hora, número, status, mensagem e erro quando existir. Use o menu **Ver logs** para visualizar os registros recentes.
+Cada envio cria um CSV em `logs/` com data, hora, número, status, mensagem, latência e erro quando existir. Use o menu **Ver logs** para visualizar os registros recentes.
 
 ## Observações legais
 
-Envie mensagens apenas para contatos autorizados. O BulkSMS continua após falhas, aguarda 1 segundo entre envios e registra sucesso ou erro de cada número.
+Envie mensagens apenas para contatos autorizados. O BulkSMS continua após falhas, aguarda o intervalo configurado entre envios e registra sucesso ou erro de cada número.
