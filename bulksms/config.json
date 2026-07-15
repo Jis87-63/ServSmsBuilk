@@ -1,0 +1,13 @@
+{
+  "app_name": "BulkSMS",
+  "version": "1.0",
+  "creator": "MillionaireOS3.25.3",
+  "default_country_code": "+258",
+  "send_delay_seconds": 1,
+  "contacts_dir": "contacts",
+  "messages_dir": "messages",
+  "logs_dir": "logs",
+  "exports_dir": "exports",
+  "github_update_command": "git pull --ff-only",
+  "require_authorized_contacts": true
+}
